@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>利息/违约金计算器 V1.0.0_星火版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+        .court-font {
+            font-family: 'Noto Serif SC', serif;
+        }
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .spark-gradient {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+        }
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            border-color: #3b82f6;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+        }
+        .btn-lpr {
+            transition: all 0.2s;
+        }
+        .btn-lpr.active {
+            background: #dbeafe;
+            border-color: #2563eb;
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+        .calc-card {
+            transition: all 0.3s ease;
+        }
+        .calc-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .formula-box {
+            background: #f1f5f9;
+            border-left: 4px solid #3b82f6;
+        }
+        .result-highlight {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border: 2px solid #3b82f6;
+        }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .tag-court {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .tag-lpr {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .tag-penalty {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- Header -->
+    <header class="spark-gradient text-white shadow-xl sticky top-0 z-50 border-b border-slate-700">
+        <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
+                    <svg class="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold court-font tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">
+                        利息/违约金计算器
+                    </h1>
+                    <div class="flex items-center gap-3 mt-1">
+                        <span class="text-xs bg-blue-500/20 text-blue-200 px-2 py-0.5 rounded border border-blue-400/30 font-mono">V1.0.0_星火版</span>
+                        <span class="text-xs text-slate-400 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse-slow"></span>
+                            法院标准：年利率÷360
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="showHelp()" class="bg-white/5 hover:bg-white/10 border border-white/20 px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    计算说明
+                </button>
+                <button onclick="window.print()" class="bg-white/5 hover:bg-white/10 border border-white/20 px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    打印
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left: Input Section -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- Basic Info -->
+                <div class="glass-panel rounded-2xl p-6 border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2 court-font">
+                        <span class="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                        基础信息
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">本金金额（元）</label>
+                            <div class="relative">
+                                <input type="number" id="principal" class="input-focus w-full px-4 py-3 rounded-xl border border-slate-300 text-lg mono-font font-medium" 
+                                    placeholder="0.00" min="0" step="0.01" oninput="calculate()">
+                                <span class="absolute right-4 top-3.5 text-slate-400 text-sm font-medium">元</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">起息日期</label>
+                                <input type="date" id="startDate" class="input-focus w-full px-4 py-3 rounded-xl border border-slate-300 text-sm" onchange="calculate()">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">截止日期</label>
+                                <input type="date" id="endDate" class="input-focus w-full px-4 py-3 rounded-xl border border-slate-300 text-sm" onchange="calculate()">
+                            </div>
+                        </div>
+
+                        <div class="bg-blue-50 rounded-lg p-3 border border-blue-100 flex items-center justify-between">
+                            <span class="text-sm text-blue-800 font-medium">计算天数</span>
+                            <span id="daysCount" class="text-lg font-bold text-blue-700 mono-font">0 天</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interest Settings -->
+                <div class="glass-panel rounded-2xl p-6 border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2 court-font">
+                        <span class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                        利息计算
+                    </h3>
+
+                    <div class="space-y-4">
+                        <!-- Interest Type -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-3">计息方式</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="interestType" value="simple" checked class="hidden peer" onchange="toggleInterestType()">
+                                    <div class="peer-checked:bg-emerald-50 peer-checked:border-emerald-500 peer-checked:text-emerald-700 px-4 py-3 rounded-xl border-2 border-slate-200 text-center transition-all bg-white hover:border-emerald-300">
+                                        <div class="font-semibold text-sm">单利计算</div>
+                                        <div class="text-xs mt-1 opacity-70">本金×利率×天数</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="interestType" value="compound" class="hidden peer" onchange="toggleInterestType()">
+                                    <div class="peer-checked:bg-emerald-50 peer-checked:border-emerald-500 peer-checked:text-emerald-700 px-4 py-3 rounded-xl border-2 border-slate-200 text-center transition-all bg-white hover:border-emerald-300">
+                                        <div class="font-semibold text-sm">复利计算</div>
+                                        <div class="text-xs mt-1 opacity-70">利滚利（逐日/逐月）</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Rate Type -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-3">利率类型</label>
+                            <div class="flex gap-2 mb-3">
+                                <button onclick="setRateType('fixed')" id="btnFixed" class="flex-1 py-2 px-3 rounded-lg border-2 border-blue-500 bg-blue-50 text-blue-700 font-medium text-sm transition">固定利率</button>
+                                <button onclick="setRateType('lpr')" id="btnLpr" class="flex-1 py-2 px-3 rounded-lg border-2 border-slate-200 text-slate-600 font-medium text-sm transition hover:border-blue-300">LPR浮动</button>
+                            </div>
+
+                            <!-- Fixed Rate Input -->
+                            <div id="fixedRateSection" class="space-y-3">
+                                <div class="relative">
+                                    <input type="number" id="annualRate" class="input-focus w-full px-4 py-3 rounded-xl border border-slate-300 text-lg mono-font" 
+                                        placeholder="0.00" min="0" step="0.01" oninput="calculate()">
+                                    <span class="absolute right-4 top-3.5 text-slate-400 text-sm font-medium">%/年</span>
+                                </div>
+                                <div class="flex gap-2 flex-wrap">
+                                    <button onclick="quickRate(3.45)" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded text-xs text-slate-600 transition">3.45%（1年期LPR）</button>
+                                    <button onclick="quickRate(3.95)" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded text-xs text-slate-600 transition">3.95%（5年期LPR）</button>
+                                    <button onclick="quickRate(4.35)" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded text-xs text-slate-600 transition">4.35%（旧基准）</button>
+                                    <button onclick="quickRate(6.00)" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded text-xs text-slate-600 transition">6.00%</button>
+                                    <button onclick="quickRate(15.4)" class="px-3 py-1 bg-red-50 hover:bg-red-100 rounded text-xs text-red-600 transition">15.4%（4倍LPR）</button>
+                                    <button onclick="quickRate(24.00)" class="px-3 py-1 bg-red-50 hover:bg-red-100 rounded text-xs text-red-600 transition">24%（上限）</button>
+                                </div>
+                            </div>
+
+                            <!-- LPR Section -->
+                            <div id="lprSection" class="hidden space-y-3">
+                                <div class="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-sm font-semibold text-emerald-900">当前LPR选择</span>
+                                        <span class="text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded">2024年3月20日公布</span>
+                                    </div>
+                                    <select id="lprSelect" class="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-white text-sm mb-3" onchange="updateLprMultiple()">
+                                        <option value="3.10">1年期 LPR：3.10%</option>
+                                        <option value="3.60" selected>5年期以上 LPR：3.60%</option>
+                                    </select>
+                                    
+                                    <div class="space-y-2">
+                                        <label class="text-xs font-medium text-emerald-800">逾期罚息倍数（根据《民法典》第585条）</label>
+                                        <div class="grid grid-cols-5 gap-2">
+                                            <button onclick="setLprMultiple(1, this)" class="btn-lpr py-2 px-1 rounded border border-slate-200 text-xs font-medium bg-white hover:border-emerald-400">1倍</button>
+                                            <button onclick="setLprMultiple(1.3, this)" class="btn-lpr py-2 px-1 rounded border border-slate-200 text-xs font-medium bg-white hover:border-emerald-400 active">1.3倍</button>
+                                            <button onclick="setLprMultiple(1.5, this)" class="btn-lpr py-2 px-1 rounded border border-slate-200 text-xs font-medium bg-white hover:border-emerald-400">1.5倍</button>
+                                            <button onclick="setLprMultiple(2, this)" class="btn-lpr py-2 px-1 rounded border border-slate-200 text-xs font-medium bg-white hover:border-emerald-400">2倍</button>
+                                            <button onclick="setLprMultiple(4, this)" class="btn-lpr py-2 px-1 rounded border border-slate-200 text-xs font-medium bg-white hover:border-emerald-400">4倍</button>
+                                        </div>
+                                        <div class="mt-2 text-center">
+                                            <span class="text-sm text-emerald-700 font-bold mono-font" id="lprResultRate">4.68%</span>
+                                            <span class="text-xs text-emerald-600 ml-1">（3.60% × 1.3）</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Compound Settings (Hidden by default) -->
+                        <div id="compoundSettings" class="hidden space-y-3 pt-3 border-t border-slate-200">
+                            <label class="block text-sm font-semibold text-slate-700">复利周期</label>
+                            <select id="compoundPeriod" class="input-focus w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white" onchange="calculate()">
+                                <option value="daily">按日复利（每日结息）</option>
+                                <option value="monthly" selected>按月复利（每月结息）</option>
+                                <option value="quarterly">按季复利（每季结息）</option>
+                                <option value="yearly">按年复利（每年结息）</option>
+                            </select>
+                            <p class="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                                提示：民间借贷中，复利约定需符合《民法典》第680条，超过部分无效。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Penalty Settings -->
+                <div class="glass-panel rounded-2xl p-6 border border-slate-200">
+                    <div class="flex items-center justify-between mb-5">
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2 court-font">
+                            <span class="w-8 h-8 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-sm font-bold">3</span>
+                            违约金计算
+                        </h3>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="calcPenalty" class="sr-only peer" onchange="togglePenalty()">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                            <span class="ml-3 text-sm font-medium text-slate-700">计算违约金</span>
+                        </label>
+                    </div>
+
+                    <div id="penaltySection" class="hidden space-y-4 opacity-50 transition-opacity">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">违约金利率（年利率）</label>
+                            <div class="relative">
+                                <input type="number" id="penaltyRate" class="input-focus w-full px-4 py-3 rounded-xl border border-slate-300 text-lg mono-font" 
+                                    placeholder="0.00" min="0" step="0.01" oninput="calculate()">
+                                <span class="absolute right-4 top-3.5 text-slate-400 text-sm font-medium">%/年</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">根据《民法典》第585条，违约金过分高于损失的（通常>30%），可请求法院调减</p>
+                        </div>
+
+                        <div class="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <span class="text-sm font-semibold text-amber-900">法院提示</span>
+                            </div>
+                            <p class="text-xs text-amber-800 leading-relaxed">
+                                若约定"利息+违约金"合计超过LPR 4倍（当前约14.4%），超出部分法院不予支持（《民间借贷司法解释》第25条）。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="calculate()" class="btn-primary w-full text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    开始计算
+                </button>
+
+                <button onclick="resetForm()" class="w-full py-3 border-2 border-slate-300 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 transition">
+                    重置所有数据
+                </button>
+            </div>
+
+            <!-- Right: Results Section -->
+            <div class="lg:col-span-7 space-y-6">
+                
+                <!-- Summary Card -->
+                <div id="resultCard" class="glass-panel rounded-2xl p-8 border border-slate-200 hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-slate-800 court-font">计算结果</h3>
+                        <div class="flex gap-2">
+                            <span class="tag tag-court">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                                </svg>
+                                法院标准：360天/年
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Main Results Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="result-highlight rounded-xl p-5 calc-card">
+                            <div class="text-sm text-blue-700 font-semibold mb-1">应付利息</div>
+                            <div class="text-3xl font-bold text-blue-900 mono-font tracking-tight" id="interestResult">¥0.00</div>
+                            <div class="text-xs text-blue-600 mt-2" id="interestRateDisplay">年利率 0%</div>
+                        </div>
+                        
+                        <div id="penaltyResultCard" class="hidden result-highlight rounded-xl p-5 calc-card border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50">
+                            <div class="text-sm text-amber-700 font-semibold mb-1">违约金</div>
+                            <div class="text-3xl font-bold text-amber-900 mono-font tracking-tight" id="penaltyResult">¥0.00</div>
+                            <div class="text-xs text-amber-600 mt-2" id="penaltyRateDisplay">违约金率 0%</div>
+                        </div>
+                    </div>
+
+                    <!-- Total -->
+                    <div class="bg-slate-900 text-white rounded-xl p-6 mb-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="text-slate-400 text-sm mb-1">本息合计（本金+利息+违约金）</div>
+                                <div class="text-4xl font-bold mono-font tracking-tight" id="totalResult">¥0.00</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-slate-400 text-xs mb-1">其中本金</div>
+                                <div class="text-xl font-semibold mono-font" id="principalDisplay">¥0.00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Calculation Details -->
+                    <div class="space-y-4">
+                        <h4 class="font-bold text-slate-800 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                            </svg>
+                            计算明细与公式
+                        </h4>
+
+                        <!-- Formula Box -->
+                        <div class="formula-box rounded-r-xl p-4 space-y-3">
+                            <div class="flex items-start gap-3">
+                                <span class="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+                                <div class="flex-1">
+                                    <div class="text-sm font-semibold text-slate-700 mb-1">日利率计算（法院标准）</div>
+                                    <div class="mono-font text-sm text-slate-600 bg-white p-2 rounded border border-slate-200">
+                                        日利率 = 年利率 ÷ 360 = <span id="formulaDailyRate">0%</span>
+                                    </div>
+                                    <div class="text-xs text-slate-500 mt-1">
+                                        依据：中国人民银行《人民币利率管理规定》及最高人民法院司法实践，法院审理案件统一按360天/年计算日利率。
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-3">
+                                <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+                                <div class="flex-1">
+                                    <div class="text-sm font-semibold text-slate-700 mb-1">利息计算公式</div>
+                                    <div class="mono-font text-sm text-slate-600 bg-white p-2 rounded border border-slate-200" id="formulaInterest">
+                                        利息 = 本金 × 日利率 × 天数
+                                    </div>
+                                    <div class="text-xs text-slate-500 mt-1 mono-font" id="calcDetailInterest">
+                                        = 0 × 0% × 0天 = ¥0.00
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="formulaPenaltySection" class="hidden flex items-start gap-3">
+                                <span class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+                                <div class="flex-1">
+                                    <div class="text-sm font-semibold text-slate-700 mb-1">违约金计算公式</div>
+                                    <div class="mono-font text-sm text-slate-600 bg-white p-2 rounded border border-slate-200">
+                                        违约金 = 本金 × 违约金日利率 × 天数
+                                    </div>
+                                    <div class="text-xs text-slate-500 mt-1 mono-font" id="calcDetailPenalty">
+                                        = 0 × 0% × 0天 = ¥0.00
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Calculation Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200">
+                                        <th class="text-left py-3 px-4 font-semibold text-slate-700">项目</th>
+                                        <th class="text-right py-3 px-4 font-semibold text-slate-700">计算基数</th>
+                                        <th class="text-right py-3 px-4 font-semibold text-slate-700">利率/标准</th>
+                                        <th class="text-right py-3 px-4 font-semibold text-slate-700">天数</th>
+                                        <th class="text-right py-3 px-4 font-semibold text-slate-700">金额</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="py-3 px-4 font-medium text-slate-800">本金</td>
+                                        <td class="py-3 px-4 text-right mono-font" id="tablePrincipal">-</td>
+                                        <td class="py-3 px-4 text-right">-</td>
+                                        <td class="py-3 px-4 text-right">-</td>
+                                        <td class="py-3 px-4 text-right mono-font font-bold" id="tablePrincipalAmount">-</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="py-3 px-4 font-medium text-blue-700">利息</td>
+                                        <td class="py-3 px-4 text-right mono-font" id="tableInterestBase">-</td>
+                                        <td class="py-3 px-4 text-right mono-font" id="tableInterestRate">-</td>
+                                        <td class="py-3 px-4 text-right mono-font" id="tableDays">-</td>
+                                        <td class="py-3 px-4 text-right mono-font font-bold text-blue-700" id="tableInterest">-</td>
+                                    </tr>
+                                    <tr id="tablePenaltyRow" class="hidden hover:bg-slate-50">
+                                        <td class="py-3 px-4 font-medium text-amber-700">违约金</td>
+                                        <td class="py-3 px-4 text-right mono-font" id="tablePenaltyBase">-</td>
+                                        <td class="py-3 px-4 text-right mono-font" id="tablePenaltyRate">-</td>
+                                        <td class="py-3 px-4 text-right mono-font" id="tablePenaltyDays">-</td>
+                                        <td class="py-3 px-4 text-right mono-font font-bold text-amber-700" id="tablePenalty">-</td>
+                                    </tr>
+                                    <tr class="bg-slate-100 font-bold border-t-2 border-slate-300">
+                                        <td class="py-3 px-4 text-slate-900">合计</td>
+                                        <td class="py-3 px-4 text-right">-</td>
+                                        <td class="py-3 px-4 text-right">-</td>
+                                        <td class="py-3 px-4 text-right">-</td>
+                                        <td class="py-3 px-4 text-right mono-font text-lg text-slate-900" id="tableTotal">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Legal Warning -->
+                        <div class="bg-red-50 border-l-4 border-red-500 rounded-r-xl p-4 mt-6">
+                            <div class="flex items-start gap-3">
+                                <svg class="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <div>
+                                    <div class="font-bold text-red-900 text-sm mb-1">司法保护上限提示</div>
+                                    <div class="text-xs text-red-800 leading-relaxed">
+                                        根据《最高人民法院关于审理民间借贷案件适用法律若干问题的规定》（2020第二次修正）第25条，出借人请求借款人按照合同约定利率支付利息的，人民法院应予支持，但是双方约定的利率超过合同成立时一年期贷款市场报价利率<strong>四倍</strong>的除外。当前1年期LPR为3.10%，四倍为<span class="font-bold">12.40%</span>；5年期以上LPR为3.60%，四倍为<span class="font-bold">14.40%</span>。
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="glass-panel rounded-2xl p-12 text-center border border-slate-200 h-full flex flex-col justify-center items-center min-h-[400px]">
+                    <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6 relative">
+                        <svg class="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <div class="absolute -bottom-1 -right-1 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center border-4 border-white">
+                            <span class="text-white text-xs font-bold">360</span>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-700 mb-2 court-font">利息/违约金计算器</h3>
+                    <p class="text-slate-500 max-w-md mb-6">支持单利/复利计算、LPR浮动利率、逾期罚息倍数（1-4倍），严格遵循法院360天/年计算标准。</p>
+                    <div class="flex gap-2 flex-wrap justify-center">
+                        <span class="tag tag-court">法院标准</span>
+                        <span class="tag tag-lpr">LPR浮动</span>
+                        <span class="tag tag-penalty">违约金</span>
+                    </div>
+                </div>
+
+                <!-- Quick History -->
+                <div id="historySection" class="hidden glass-panel rounded-2xl p-6 border border-slate-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-bold text-slate-800">计算历史</h4>
+                        <button onclick="clearHistory()" class="text-xs text-red-600 hover:text-red-800">清空</button>
+                    </div>
+                    <div id="historyList" class="space-y-2 max-h-48 overflow-y-auto text-sm">
+                        <!-- History items -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden shadow-2xl">
+            <div class="spark-gradient text-white px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-lg court-font">计算说明与法律依据</h3>
+                <button onclick="closeHelp()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[60vh] space-y-4 text-sm text-slate-600">
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-2 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs">1</span>
+                        法院计算标准（360天/年）
+                    </h4>
+                    <p class="leading-relaxed mb-2">
+                        根据中国人民银行《人民币利率管理规定》及最高人民法院司法实践，法院审理民间借贷、金融借款等案件时，统一采用<strong>一年360天</strong>计算日利率，而非365天。
+                    </p>
+                    <div class="bg-slate-50 p-3 rounded border border-slate-200 mono-font text-xs">
+                        日利率 = 年利率 ÷ 360<br>
+                        利息 = 本金 × 日利率 × 实际天数
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-2 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">2</span>
+                        LPR（贷款市场报价利率）
+                    </h4>
+                    <p class="leading-relaxed">
+                        LPR每月20日公布，分为1年期和5年期以上两个品种。民间借贷利率不得超过合同成立时一年期LPR的四倍，超过部分法院不予支持。
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-2 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs">3</span>
+                        违约金与利息并用
+                    </h4>
+                    <p class="leading-relaxed">
+                        根据《民法典》第585条，当事人可以约定违约金。但利息与违约金之和不得超过LPR四倍。违约金过分高于实际损失的（通常超过30%），违约方可以请求法院适当减少。
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-2 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs">4</span>
+                        单利与复利
+                    </h4>
+                    <p class="leading-relaxed">
+                        <strong>单利：</strong>仅对本金计息，利息不再生息。<br>
+                        <strong>复利：</strong>利息计入本金再生息（利滚利）。民间借贷中，出借人不得将利息计入本金计算复利（《民间借贷司法解释》第27条）。
+                    </p>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200">
+                <button onclick="closeHelp()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 rounded-lg transition">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLprMultiple = 1.3;
+        let currentRateType = 'fixed';
+        let calculationHistory = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default dates
+            const today = new Date();
+            const lastMonth = new Date();
+            lastMonth.setMonth(today.getMonth() - 1);
+            
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            document.getElementById('startDate').value = lastMonth.toISOString().split('T')[0];
+            
+            updateLprMultiple();
+        });
+
+        function toggleInterestType() {
+            const type = document.querySelector('input[name="interestType"]:checked').value;
+            const compoundSettings = document.getElementById('compoundSettings');
+            
+            if(type === 'compound') {
+                compoundSettings.classList.remove('hidden');
+            } else {
+                compoundSettings.classList.add('hidden');
+            }
+            calculate();
+        }
+
+        function setRateType(type) {
+            currentRateType = type;
+            const fixedSection = document.getElementById('fixedRateSection');
+            const lprSection = document.getElementById('lprSection');
+            const btnFixed = document.getElementById('btnFixed');
+            const btnLpr = document.getElementById('btnLpr');
+            
+            if(type === 'fixed') {
+                fixedSection.classList.remove('hidden');
+                lprSection.classList.add('hidden');
+                btnFixed.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                btnFixed.classList.remove('border-slate-200', 'text-slate-600');
+                btnLpr.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                btnLpr.classList.add('border-slate-200', 'text-slate-600');
+            } else {
+                fixedSection.classList.add('hidden');
+                lprSection.classList.remove('hidden');
+                btnLpr.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                btnLpr.classList.remove('border-slate-200', 'text-slate-600');
+                btnFixed.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                btnFixed.classList.add('border-slate-200', 'text-slate-600');
+                updateLprMultiple();
+            }
+            calculate();
+        }
+
+        function quickRate(rate) {
+            document.getElementById('annualRate').value = rate;
+            calculate();
+        }
+
+        function setLprMultiple(multiple, btn) {
+            currentLprMultiple = multiple;
+            
+            // Update button styles
+            document.querySelectorAll('.btn-lpr').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            updateLprMultiple();
+            calculate();
+        }
+
+        function updateLprMultiple() {
+            const lpr = parseFloat(document.getElementById('lprSelect').value);
+            const resultRate = (lpr * currentLprMultiple).toFixed(2);
+            document.getElementById('lprResultRate').textContent = resultRate + '%';
+            
+            // Update calculation if in LPR mode
+            if(currentRateType === 'lpr') {
+                calculate();
+            }
+        }
+
+        function togglePenalty() {
+            const checkbox = document.getElementById('calcPenalty');
+            const section = document.getElementById('penaltySection');
+            
+            if(checkbox.checked) {
+                section.classList.remove('hidden', 'opacity-50');
+                section.classList.add('opacity-100');
+                setTimeout(() => {
+                    document.getElementById('penaltyRate').focus();
+                }, 100);
+            } else {
+                section.classList.add('hidden', 'opacity-50');
+                section.classList.remove('opacity-100');
+            }
+            calculate();
+        }
+
+        function calculate() {
+            // Get inputs
+            const principal = parseFloat(document.getElementById('principal').value) || 0;
+            const startDate = new Date(document.getElementById('startDate').value);
+            const endDate = new Date(document.getElementById('endDate').value);
+            
+            if(!principal || !startDate || !endDate) {
+                return;
+            }
+            
+            // Calculate days
+            const diffTime = Math.abs(endDate - startDate);
+            const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            document.getElementById('daysCount').textContent = days + ' 天';
+            
+            // Get annual rate
+            let annualRate = 0;
+            if(currentRateType === 'fixed') {
+                annualRate = parseFloat(document.getElementById('annualRate').value) || 0;
+            } else {
+                const lpr = parseFloat(document.getElementById('lprSelect').value);
+                annualRate = lpr * currentLprMultiple;
+            }
+            
+            // Calculate daily rate (Court standard: 360 days/year)
+            const dailyRate = annualRate / 360 / 100;
+            
+            // Interest calculation
+            const interestType = document.querySelector('input[name="interestType"]:checked').value;
+            let interest = 0;
+            let interestFormula = '';
+            let interestDetail = '';
+            
+            if(interestType === 'simple') {
+                // Simple interest: Principal × Daily Rate × Days
+                interest = principal * dailyRate * days;
+                interestFormula = '利息 = 本金 × 日利率 × 天数';
+                interestDetail = `= ${principal.toLocaleString()} × ${(dailyRate * 100).toFixed(6)}% × ${days}天 = ¥${interest.toFixed(2)}`;
+            } else {
+                // Compound interest: Principal × (1 + DailyRate)^Days - Principal
+                interest = principal * Math.pow(1 + dailyRate, days) - principal;
+                const period = document.getElementById('compoundPeriod').value;
+                let periodText = '每日';
+                if(period === 'monthly') periodText = '每月';
+                if(period === 'quarterly') periodText = '每季';
+                if(period === 'yearly') periodText = '每年';
+                
+                interestFormula = `复利 = 本金 × (1 + 日利率)^天数 - 本金`;
+                interestDetail = `= ${principal.toLocaleString()} × (1 + ${(dailyRate * 100).toFixed(6)}%)^${days} - ${principal.toLocaleString()} = ¥${interest.toFixed(2)}`;
+            }
+            
+            // Penalty calculation
+            let penalty = 0;
+            const calcPenalty = document.getElementById('calcPenalty').checked;
+            
+            if(calcPenalty) {
+                const penaltyRate = parseFloat(document.getElementById('penaltyRate').value) || 0;
+                const penaltyDailyRate = penaltyRate / 360 / 100;
+                penalty = principal * penaltyDailyRate * days;
+            }
+            
+            // Total
+            const total = principal + interest + penalty;
+            
+            // Display results
+            displayResults({
+                principal,
+                days,
+                annualRate,
+                dailyRate,
+                interest,
+                interestFormula,
+                interestDetail,
+                interestType,
+                calcPenalty,
+                penalty,
+                total
+            });
+            
+            // Add to history
+            addToHistory({
+                principal,
+                days,
+                annualRate,
+                interest,
+                penalty,
+                total,
+                date: new Date().toLocaleString()
+            });
+        }
+
+        function displayResults(data) {
+            // Show result card, hide empty state
+            document.getElementById('resultCard').classList.remove('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+            
+            // Update main numbers
+            document.getElementById('interestResult').textContent = '¥' + data.interest.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('interestRateDisplay').textContent = `年利率 ${data.annualRate.toFixed(2)}%（日利率 ${(data.dailyRate * 100).toFixed(6)}%）`;
+            
+            document.getElementById('totalResult').textContent = '¥' + data.total.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('principalDisplay').textContent = '¥' + data.principal.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            // Penalty display
+            const penaltyCard = document.getElementById('penaltyResultCard');
+            const formulaPenaltySection = document.getElementById('formulaPenaltySection');
+            const tablePenaltyRow = document.getElementById('tablePenaltyRow');
+            
+            if(data.calcPenalty) {
+                penaltyCard.classList.remove('hidden');
+                formulaPenaltySection.classList.remove('hidden');
+                tablePenaltyRow.classList.remove('hidden');
+                
+                const penaltyRate = parseFloat(document.getElementById('penaltyRate').value) || 0;
+                const penaltyDailyRate = penaltyRate / 360 / 100;
+                
+                document.getElementById('penaltyResult').textContent = '¥' + data.penalty.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                document.getElementById('penaltyRateDisplay').textContent = `违约金率 ${penaltyRate.toFixed(2)}%（日利率 ${(penaltyDailyRate * 100).toFixed(6)}%）`;
+                
+                document.getElementById('calcDetailPenalty').textContent = 
+                    `= ${data.principal.toLocaleString()} × ${(penaltyDailyRate * 100).toFixed(6)}% × ${data.days}天 = ¥${data.penalty.toFixed(2)}`;
+                
+                // Update penalty table
+                document.getElementById('tablePenaltyBase').textContent = '¥' + data.principal.toLocaleString();
+                document.getElementById('tablePenaltyRate').textContent = penaltyRate.toFixed(2) + '%/年';
+                document.getElementById('tablePenaltyDays').textContent = data.days;
+                document.getElementById('tablePenalty').textContent = '¥' + data.penalty.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            } else {
+                penaltyCard.classList.add('hidden');
+                formulaPenaltySection.classList.add('hidden');
+                tablePenaltyRow.classList.add('hidden');
+            }
+            
+            // Update formulas
+            document.getElementById('formulaDailyRate').textContent = (data.dailyRate * 100).toFixed(6) + '%';
+            document.getElementById('formulaInterest').textContent = data.interestFormula;
+            document.getElementById('calcDetailInterest').textContent = data.interestDetail;
+            
+            // Update table
+            document.getElementById('tablePrincipal').textContent = '¥' + data.principal.toLocaleString();
+            document.getElementById('tablePrincipalAmount').textContent = '¥' + data.principal.toLocaleString();
+            
+            document.getElementById('tableInterestBase').textContent = '¥' + data.principal.toLocaleString();
+            document.getElementById('tableInterestRate').textContent = data.annualRate.toFixed(2) + '%/年';
+            document.getElementById('tableDays').textContent = data.days;
+            document.getElementById('tableInterest').textContent = '¥' + data.interest.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            document.getElementById('tableTotal').textContent = '¥' + data.total.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        function addToHistory(data) {
+            // Prevent duplicate consecutive entries
+            if(calculationHistory.length > 0) {
+                const last = calculationHistory[0];
+                if(last.principal === data.principal && last.days === data.days && last.annualRate === data.annualRate) {
+                    return;
+                }
+            }
+            
+            calculationHistory.unshift(data);
+            if(calculationHistory.length > 10) calculationHistory.pop();
+            
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            const section = document.getElementById('historySection');
+            
+            if(calculationHistory.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            
+            section.classList.remove('hidden');
+            container.innerHTML = calculationHistory.map((item, index) => `
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition cursor-pointer" onclick="restoreHistory(${index})">
+                    <div>
+                        <div class="font-medium text-slate-800">本金 ¥${item.principal.toLocaleString()}</div>
+                        <div class="text-xs text-slate-500">${item.days}天 @ ${item.annualRate.toFixed(2)}%</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-blue-700">¥${item.total.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div class="text-xs text-slate-400">${new Date(item.date).toLocaleTimeString()}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function restoreHistory(index) {
+            const item = calculationHistory[index];
+            document.getElementById('principal').value = item.principal;
+            // Note: We don't restore dates as they may be relative, but we could
+            calculate();
+        }
+
+        function clearHistory() {
+            calculationHistory = [];
+            document.getElementById('historySection').classList.add('hidden');
+        }
+
+        function resetForm() {
+            document.getElementById('principal').value = '';
+            document.getElementById('annualRate').value = '';
+            document.getElementById('penaltyRate').value = '';
+            document.getElementById('calcPenalty').checked = false;
+            document.getElementById('penaltySection').classList.add('hidden', 'opacity-50');
+            document.getElementById('penaltySection').classList.remove('opacity-100');
+            
+            // Reset to today and 1 month ago
+            const today = new Date();
+            const lastMonth = new Date();
+            lastMonth.setMonth(today.getMonth() - 1);
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            document.getElementById('startDate').value = lastMonth.toISOString().split('T')[0];
+            
+            // Reset to simple interest
+            document.querySelector('input[name="interestType"][value="simple"]').checked = true;
+            document.getElementById('compoundSettings').classList.add('hidden');
+            
+            // Reset to fixed rate
+            setRateType('fixed');
+            
+            // Hide results
+            document.getElementById('resultCard').classList.add('hidden');
+            document.getElementById('emptyState').classList.remove('hidden');
+            
+            calculationHistory = [];
+            document.getElementById('historySection').classList.add('hidden');
+        }
+
+        function showHelp() {
+            document.getElementById('helpModal').classList.remove('hidden');
+            document.getElementById('helpModal').classList.add('flex');
+        }
+
+        function closeHelp() {
+            document.getElementById('helpModal').classList.add('hidden');
+            document.getElementById('helpModal').classList.remove('flex');
+        }
+
+        // Enter key support
+        document.addEventListener('keypress', function(e) {
+            if(e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                calculate();
+            }
+        });
+    </script>
+</body>
+</html>
